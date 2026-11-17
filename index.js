@@ -48,6 +48,20 @@ async function run() {
       res.json(result);
     });
 
+    //get all booking data
+    app.get("/booking", async (req, res) => {
+      const result = await bookingCollection.find().toArray();
+      res.send(result);
+    });
+
+    //delete single booking data
+    app.delete("/booking/:bookingId", async (req, res) => {
+      const { bookingId } = req.params;
+      const query = { _id: new ObjectId(bookingId) };
+      const result = await bookingCollection.deleteOne(query);
+      res.json(result);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log("You successfully connected to MongoDB!");
   } catch (err) {
