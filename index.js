@@ -25,6 +25,7 @@ async function run() {
 
     const db = client.db("doc-appoint");
     const doctorsCollection = db.collection("doctors");
+    const bookingCollection = db.collection("bookings");
 
     //get all data
     app.get("/all-appointment", async (req, res) => {
@@ -37,6 +38,13 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await doctorsCollection.findOne(query);
+      res.json(result);
+    });
+
+    //adding booking data
+    app.post("/booking", async (req, res) => {
+      const bookingData = req.body;
+      const result = await bookingCollection.insertOne(bookingData);
       res.json(result);
     });
 
