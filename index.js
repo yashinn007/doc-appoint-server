@@ -3,6 +3,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 const port = process.env.PORT;
 const URI = process.env.MONGODB_URI;
 
@@ -17,6 +18,36 @@ const client = new MongoClient(URI, {
     deprecationErrors: true,
   },
 });
+
+//jwk operation
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+);
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req?.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  //verifying..
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    //console.log("payload:", payload);
+    next();
+  } catch (error) {
+    console.error("JWT verify failed:", error.code, error.name, error.message);
+    return res.status(403).json({
+      message: "Forbidden",
+      reason: error.code,
+      name: error.name,
+      detail: error.message,
+    });
+  }
+};
 
 async function run() {
   try {
@@ -34,7 +65,7 @@ async function run() {
     });
 
     //get single data
-    app.get("/all-appointment/:id", async (req, res) => {
+    app.get("/all-appointment/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await doctorsCollection.findOne(query);
@@ -42,30 +73,45 @@ async function run() {
     });
 
     //adding booking data
-    app.post("/booking", async (req, res) => {
+    app.post("/booking", verifyToken, async (req, res) => {
       const bookingData = req.body;
       const result = await bookingCollection.insertOne(bookingData);
       res.json(result);
     });
 
-    //get all booking data
-    app.get("/booking", async (req, res) => {
-      const result = await bookingCollection.find().toArray();
-      res.send(result);
-    });
-
-    //edit booking data
-    app.patch("/booking", async (req, res) => {
-      const updatedData = req.body;
-      const query = { userId: updatedData.userId };
-      const result = await bookingCollection.updateOne(query, {
-        $set: updatedData,
-      });
+    //get user booking data
+    app.get("/booking", verifyToken, async (req, res) => {
+      const userId = req.query.userId;
+      const query = { userId };
+      const result = await bookingCollection.find(query).toArray();
       res.json(result);
     });
 
+    //edit booking data
+    app.patch("/booking/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const updateDoc = {
+        $set: {
+          doctorName: updatedData.doctorName,
+          patientName: updatedData.patientName,
+          date: updatedData.date,
+          time: updatedData.time,
+          message: updatedData.message,
+        },
+      };
+
+      const result = await bookingCollection.updateOne(query, updateDoc);
+
+      res.send(result);
+    });
+
     //delete single booking data
-    app.delete("/booking/:bookingId", async (req, res) => {
+    app.delete("/booking/:bookingId", verifyToken, async (req, res) => {
       const { bookingId } = req.params;
       const query = { _id: new ObjectId(bookingId) };
       const result = await bookingCollection.deleteOne(query);
