@@ -54,6 +54,16 @@ async function run() {
       res.send(result);
     });
 
+    //edit booking data
+    app.patch("/booking", async (req, res) => {
+      const updatedData = req.body;
+      const query = { userId: updatedData.userId };
+      const result = await bookingCollection.updateOne(query, {
+        $set: updatedData,
+      });
+      res.json(result);
+    });
+
     //delete single booking data
     app.delete("/booking/:bookingId", async (req, res) => {
       const { bookingId } = req.params;
