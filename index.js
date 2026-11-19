@@ -57,6 +57,16 @@ async function run() {
     const doctorsCollection = db.collection("doctors");
     const bookingCollection = db.collection("bookings");
 
+    // Get top 3 highest-rated doctors
+    app.get("/top-rated", async (req, res) => {
+      const result = await doctorsCollection
+        .find()
+        .sort({ rating: -1 })
+        .limit(3)
+        .toArray();
+      res.send(result);
+    });
+
     //get all data
     app.get("/all-appointment", async (req, res) => {
       const result = await doctorsCollection.find().toArray();
