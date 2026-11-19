@@ -51,8 +51,7 @@ const verifyToken = async (req, res, next) => {
 
 async function run() {
   try {
-    // ডেটাবেসের সাথে সংযোগ:
-    await client.connect();
+    //await client.connect();
 
     const db = client.db("doc-appoint");
     const doctorsCollection = db.collection("doctors");
@@ -118,7 +117,7 @@ async function run() {
       res.json(result);
     });
 
-    await client.db("admin").command({ ping: 1 });
+    //await client.db("admin").command({ ping: 1 });
     console.log("You successfully connected to MongoDB!");
   } catch (err) {
     console.error("MongoDB connection failed:", err);
