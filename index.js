@@ -67,9 +67,17 @@ async function run() {
       res.send(result);
     });
 
-    //get all data
+    //get all data & search
     app.get("/all-appointment", async (req, res) => {
-      const result = await doctorsCollection.find().toArray();
+      const { search } = req.query;
+      let query = {};
+
+      if (search && search.trim()) {
+        const safeSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        query = { name: { $regex: safeSearch, $options: "i" } };
+      }
+
+      const result = await doctorsCollection.find(query).toArray();
       res.send(result);
     });
 
